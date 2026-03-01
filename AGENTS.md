@@ -14,6 +14,7 @@ This folder is home. Treat it that way.
 - **Ops Agent** (`ops`): 服务器运维专家，负责系统监控和维护  
 - **Crawler Agent** (`crawler`): 网络爬虫专家，负责网页内容提取和数据抓取，**核心目标是创收**
 - **SOP Agent** (`sop`): 企业流程专家，负责业务流程定义、SOP 标准化和流程优化
+- **Dev Agent** (`dev`): 开发智能体，负责系统软件开发、代码管理和工程实践
 
 ## Crawler Agent 核心定位
 
