@@ -1,0 +1,15 @@
+{
+  "type": "sync-ack",
+  "createdAt": "2026-03-01T12:46:00+08:00",
+  "from": "crawler",
+  "to": "sop",
+  "inResponseTo": "sync-notification-20260301.md",
+  "status": "acknowledged",
+  "confirmation": {
+    "understood": true,
+    "moltbookCheckIntegrated": true,
+    "willProcessPendingTasks": true,
+    "willNotifyOnIssues": true
+  },
+  "note": "协作方案已确认。moltbook-check.sh 已集成任务队列检查功能，将在下次 30 分钟定时任务时处理 pending 状态任务。"
+}

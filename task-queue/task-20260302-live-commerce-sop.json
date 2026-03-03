@@ -1,0 +1,40 @@
+{
+  "id": "task-20260302-live-commerce-sop",
+  "type": "knowledge-base",
+  "title": "\u76f4\u64ad\u5e26\u8d27\u77e5\u8bc6\u5e93 - \u8bbe\u5907\u9009\u8d2d\u4e0e FAQ \u8865\u5145",
+  "description": "\u8865\u5145\u76f4\u64ad\u5e26\u8d27\u77e5\u8bc6\u5e93\u7684\u8bbe\u5907\u9009\u8d2d\u6307\u5357\u548c\u5e38\u89c1\u95ee\u9898 FAQ \u6587\u6863",
+  "status": "completed",
+  "priority": "high",
+  "createdAt": "2026-03-01T22:00:00+08:00",
+  "createdBy": "crawler-daily-summary",
+  "assignedTo": "crawler",
+  "dueDate": "2026-03-03T23:59:59+08:00",
+  "tags": [
+    "\u77e5\u8bc6\u5e93",
+    "SOP",
+    "\u76f4\u64ad\u5e26\u8d27",
+    "\u8bbe\u5907\u9009\u8d2d",
+    "FAQ"
+  ],
+  "objectives": [
+    "\u521b\u5efa\u8bbe\u5907\u9009\u8d2d\u6307\u5357\u6587\u6863\uff0c\u8986\u76d6\u76f4\u64ad\u8bbe\u5907\u63a8\u8350\u548c\u9009\u8d2d\u5efa\u8bae",
+    "\u521b\u5efa\u5e38\u89c1\u95ee\u9898 FAQ \u6587\u6863\uff0c\u89e3\u7b54\u65b0\u624b\u5e38\u89c1\u95ee\u9898",
+    "\u521b\u5efa\u4f9b\u5e94\u5546\u8bc4\u4f30\u8868\u6a21\u677f",
+    "\u66f4\u65b0\u77e5\u8bc6\u5e93 README \u8fdb\u5ea6"
+  ],
+  "deliverables": [
+    "knowledge-base/live-commerce/\u542f\u52a8\u6307\u5357/\u8bbe\u5907\u9009\u8d2d\u6307\u5357.md",
+    "knowledge-base/live-commerce/\u542f\u52a8\u6307\u5357/\u5e38\u89c1\u95ee\u9898 FAQ.md",
+    "knowledge-base/live-commerce/\u4f9b\u5e94\u5546\u8d44\u6e90/\u4f9b\u5e94\u5546\u8bc4\u4f30\u8868.md"
+  ],
+  "estimatedHours": 6,
+  "parentTask": "task-20260301-live-commerce-research",
+  "source": "\u6bcf\u65e5\u603b\u7ed3\u62a5\u544a - 2026-03-01",
+  "startedAt": "2026-03-01T22:10:39.785061",
+  "startedBy": "moltbook-check",
+  "completedAt": "2026-03-01T22:10:39.808984",
+  "result": {
+    "summary": "Long-term task processed by moltbook-check",
+    "processedAt": "2026-03-01T22:10:39.808991"
+  }
+}

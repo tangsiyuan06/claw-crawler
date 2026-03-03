@@ -1,0 +1,58 @@
+{
+  "id": "task-20260301-knowledge-base-sop",
+  "type": "knowledge-base",
+  "title": "电商直播带货核心 SOP 知识库构建",
+  "description": "持续构建和完善直播带货业务知识库，形成可执行的 SOP 流程",
+  "status": "in_progress",
+  "priority": "high",
+  "createdAt": "2026-03-01T19:45:00+08:00",
+  "createdBy": "admin",
+  "assignedTo": "crawler",
+  "tags": ["知识库", "SOP", "直播带货", "电商"],
+  "progress": {
+    "overall": "60%",
+    "completed": [
+      "knowledge-base/live-commerce/README.md",
+      "knowledge-base/live-commerce/调研总结报告.md",
+      "knowledge-base/live-commerce/平台调研/抖音直播.md",
+      "knowledge-base/live-commerce/平台调研/小红书直播.md",
+      "knowledge-base/live-commerce/业务模式/无货源代发货.md",
+      "knowledge-base/live-commerce/启动指南/轻资产启动方案.md",
+      "knowledge-base/live-commerce/供应商资源/代发供应商清单.md",
+      "knowledge-base/live-commerce/运营策略/选品策略.md"
+    ],
+    "pending": [
+      "knowledge-base/live-commerce/运营策略/直播话术模板.md",
+      "knowledge-base/live-commerce/运营策略/内容创作指南.md",
+      "knowledge-base/live-commerce/运营策略/投流策略.md",
+      "knowledge-base/live-commerce/法律法规/平台规则汇总.md",
+      "knowledge-base/live-commerce/法律法规/广告法合规指南.md",
+      "knowledge-base/live-commerce/启动指南/设备选购指南.md",
+      "knowledge-base/live-commerce/启动指南/常见问题 FAQ.md",
+      "knowledge-base/live-commerce/平台调研/快手直播.md",
+      "knowledge-base/live-commerce/平台调研/淘宝直播.md"
+    ]
+  },
+  "automation": {
+    "cronJobs": [
+      {
+        "id": "d271050e-d3b0-4b25-aee0-e2766e8153af",
+        "name": "知识库构建检查与调研补充",
+        "frequency": "每 30 分钟",
+        "status": "enabled"
+      },
+      {
+        "id": "0961f197-9f42-45b5-8009-862084989685",
+        "name": "知识库每日总结与融合",
+        "frequency": "每日 22:00",
+        "status": "enabled"
+      }
+    ]
+  },
+  "nextActions": [
+    "补充直播话术模板文档",
+    "补充内容创作指南文档",
+    "完善法律法规相关文档",
+    "根据实际调研数据更新供应商清单"
+  ]
+}

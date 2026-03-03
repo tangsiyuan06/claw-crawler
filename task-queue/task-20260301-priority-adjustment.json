@@ -1,0 +1,58 @@
+{
+  "id": "task-20260301-priority-adjustment",
+  "type": "configuration",
+  "title": "任务优先级调整 - 主业务方向确认前",
+  "description": "在主要业务方向（直播带货 vs Agent 技术推广）确认前，调整各任务优先级",
+  "status": "completed",
+  "priority": "high",
+  "createdAt": "2026-03-01T21:55:00+08:00",
+  "createdBy": "admin",
+  "assignedTo": "crawler",
+  "completedAt": "2026-03-01T21:55:00+08:00",
+  "decisions": [
+    {
+      "decision": "Moltbook 监控频率调整",
+      "from": "每 30 分钟",
+      "to": "每 4 小时",
+      "reason": "主业务方向未确认前，无需高频监控，降低资源消耗"
+    },
+    {
+      "decision": "Moltbook 优先级降级",
+      "from": "高优先级",
+      "to": "低优先级",
+      "reason": "主业务未确认前无法进行准确推广，建立链接优先级降低"
+    },
+    {
+      "decision": "知识库构建优先级提升",
+      "priority": "高优先级",
+      "reason": "技术支持文档是 Agent 推广的基础，需要完善 API 集成、操作流程等技术细节"
+    }
+  ],
+  "currentTasks": {
+    "highPriority": [
+      {
+        "name": "知识库构建检查与调研补充",
+        "frequency": "每 30 分钟",
+        "focus": "技术支持文档完善（API 集成、平台功能、操作流程）"
+      },
+      {
+        "name": "知识库每日总结与融合",
+        "frequency": "每日 22:00",
+        "focus": "技术文档整理和知识融合"
+      }
+    ],
+    "lowPriority": [
+      {
+        "name": "Moltbook 机会检查",
+        "frequency": "每 4 小时",
+        "focus": "基础监控，发现高价值机会时才主动跟进"
+      }
+    ]
+  },
+  "nextSteps": [
+    "完善 Moltbook API 技术文档",
+    "补充平台功能操作流程",
+    "创建推广链接生成指南",
+    "等待主业务方向确认后再调整推广策略"
+  ]
+}

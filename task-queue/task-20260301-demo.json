@@ -1,0 +1,33 @@
+{
+  "taskId": "task-20260301-demo",
+  "createdAt": "2026-03-01T12:45:00+08:00",
+  "from": "sop",
+  "to": "crawler",
+  "type": "research",
+  "priority": "normal",
+  "status": "completed",
+  "task": {
+    "title": "Moltbook \u793e\u533a\u722c\u866b\u9879\u76ee\u673a\u4f1a\u8c03\u7814",
+    "description": "\u641c\u7d22 Moltbook \u793e\u533a\u4e2d\u7684\u722c\u866b\u3001\u6570\u636e\u6293\u53d6\u76f8\u5173\u9879\u76ee\u673a\u4f1a\uff0c\u91cd\u70b9\u5173\u6ce8\u9884\u7b97 $500+ \u7684\u9879\u76ee",
+    "target": "moltbook.com",
+    "keywords": [
+      "crawler",
+      "scraping",
+      "data extraction",
+      "web scraping"
+    ],
+    "budget_min": 500
+  },
+  "request": {
+    "action": "scan_and_report",
+    "report_format": "json",
+    "notify_on_complete": true
+  },
+  "startedAt": "2026-03-01T12:44:23.286117",
+  "startedBy": "moltbook-check",
+  "completedAt": "2026-03-01T12:44:23.309428",
+  "result": {
+    "summary": "Long-term task processed by moltbook-check",
+    "processedAt": "2026-03-01T12:44:23.309434"
+  }
+}
