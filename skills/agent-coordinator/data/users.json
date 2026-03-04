@@ -1,6 +1,8 @@
 {
   "cyril": {
     "name": "Cyril",
-    "open_id": "ou_9ab574f8017b70e0c704dcd78c1b12a5"
+    "open_ids": {
+      "sop": "ou_8b04c18bc6f67f89218cc1d2a3206ecd"
+    }
   }
 }
