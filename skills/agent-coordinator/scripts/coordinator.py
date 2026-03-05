@@ -2,32 +2,39 @@
 """
 Agent Coordinator - 多 Agent 协同调度
 
-跨 Agent 任务委派、状态同步、结果回传，以及向人类主动汇报。
-所有通讯统一通过 OpenClaw Cron Jobs（isolated + agentTurn + delivery）实现。
+跨 Agent 任务委派、状态同步、结果回传。
+所有通讯通过 OpenClaw Cron Jobs（isolated + agentTurn）实现。
 
-用户数据统一管理：users.json 按 agent 存储各飞书应用的 open_id。
+- Agent → Agent：通过 cron job 创建 isolated agentTurn 委派任务
+- Agent → Human：在创建 cron job 时配置 delivery.announce，由 OpenClaw 自动投递结果给用户
+- Agent → Agent 回传：目标 agent 重新创建 cron job 回传给发起方
+
+用户数据统一管理：/home/admin/.openclaw/data/users.json
   同一用户在不同 agent（不同飞书应用）下有不同的 open_id，
   通过 user add --agent-id <agent> 分别注册。
+
+Agent Account 映射：/home/admin/.openclaw/workspace-{agent}/skills/agent-cron-job/data/agent-accounts.json
+  用于在 isolated session 中使用 message 工具时自动获取正确的 accountId。
 """
 
 import argparse
 import json
 import sys
 from datetime import datetime, timedelta, timezone
-import ssl
 from pathlib import Path
 
 
 # Agent 列表
 AGENTS = {
-    "main": {"name": "主智能体", "role": "日常对话 + 通用任务", "feishu_account": "feishubot"},
-    "dev": {"name": "开发智能体", "role": "技能开发 + 技术方案", "feishu_account": "feishu-dev"},
-    "sop": {"name": "SOP 智能体", "role": "SOP 制定 + 流程优化", "feishu_account": "feishu-sop"},
-    "ops": {"name": "运维智能体", "role": "运维部署 + 监控", "feishu_account": "feishu-ops"},
-    "crawler": {"name": "爬虫智能体", "role": "数据爬取 + API 分析", "feishu_account": "feishu-crawler"},
+    "main": {"name": "主智能体", "role": "日常对话 + 通用任务"},
+    "dev": {"name": "开发智能体", "role": "技能开发 + 技术方案"},
+    "sop": {"name": "SOP 智能体", "role": "SOP 制定 + 流程优化"},
+    "ops": {"name": "运维智能体", "role": "运维部署 + 监控"},
+    "crawler": {"name": "爬虫智能体", "role": "数据爬取 + API 分析"},
 }
 
 USERS_DATA_PATH = Path("/home/admin/.openclaw/data/users.json")
+AGENT_ACCOUNTS_PATH = Path("/home/admin/.openclaw/workspace-dev/skills/agent-cron-job/data/agent-accounts.json")
 
 
 class Colors:
@@ -55,12 +62,22 @@ def print_info(msg):
     print(f"{Colors.BLUE}ℹ️  {msg}{Colors.END}")
 
 
-def get_feishu_account(agent_id):
-    """获取 agent 对应的飞书账号名"""
-    if agent_id not in AGENTS:
-        print_error(f"未知的 Agent: {agent_id}")
+def load_agent_accounts():
+    """读取 agent-accounts.json，获取 agent 到 accountId 的映射"""
+    if not AGENT_ACCOUNTS_PATH.exists():
+        return {}
+    return json.loads(AGENT_ACCOUNTS_PATH.read_text(encoding="utf-8"))
+
+
+def get_account_id(agent_id):
+    """获取指定 agent 的 accountId"""
+    accounts = load_agent_accounts()
+    mappings = accounts.get("mappings", {})
+    if agent_id not in mappings:
+        print_error(f"Agent '{agent_id}' 没有配置 accountId")
+        print_info(f"可用 Agent: {', '.join(mappings.keys())}")
         sys.exit(1)
-    return AGENTS[agent_id]["feishu_account"]
+    return mappings[agent_id]["accountId"]
 
 
 def load_users():
@@ -82,7 +99,7 @@ def save_users(users):
 
 
 def resolve_open_id(username, agent_id):
-    """通过 username + agent_id 查找该用户在指定 agent 飞书应用下的 open_id。"""
+    """从统一的 users.json 中，通过 username + agent_id 查找对应的 open_id。"""
     users = load_users()
     if username not in users:
         print_error(f"用户 '{username}' 不存在，请先用 user add 添加")
@@ -93,7 +110,7 @@ def resolve_open_id(username, agent_id):
     if not open_id:
         print_error(
             f"用户 '{username}' 未设置 agent '{agent_id}' 的 open_id，"
-            f"请运行: user add --username {username} --agent-id {agent_id} --open-id <open_id>"
+            f"请运行：user add --username {username} --agent-id {agent_id} --open-id <open_id>"
         )
         sys.exit(1)
 
@@ -117,7 +134,11 @@ def build_message_envelope(from_agent, to_agent, msg_type, message, reply_to=Non
 
 
 def send(args):
-    """生成 cron.add 参数 JSON，用于向目标 agent 投递消息"""
+    """生成 cron.add 参数 JSON，用于向目标 agent 投递消息。
+
+    如指定 --notify-user，在 cron job 上配置 delivery announce，
+    目标 agent 的回复会由 OpenClaw 自动投递给用户，无需独立工具调用。
+    """
     if args.to not in AGENTS:
         print_error(f"未知的目标 Agent: {args.to}")
         print_info(f"可用 Agent: {', '.join(AGENTS.keys())}")
@@ -146,18 +167,18 @@ def send(args):
         f"请根据消息内容执行对应操作。"
     )
 
-    # 如有 notify_user，告知 agent 执行结果会自动通过 delivery 发送给用户
+    # 如有 notify_user，告知 agent 其回复会通过 OpenClaw delivery announce 自动投递给用户
     if args.notify_user:
         agent_message += (
-            f"\n\n📨 你的执行结果将通过 cron delivery 自动发送给用户 {args.notify_user}，"
-            f"请在回复中包含清晰的执行结果摘要。"
+            f"\n\n📨 本次任务已配置 delivery announce，你的回复内容将由 OpenClaw 自动发送给用户 {args.notify_user}。"
+            f"请在回复中直接包含面向用户的执行结果摘要，无需额外调用 reply-human。"
         )
 
     # 计算 20 秒后的 ISO 8601 时间戳
     fire_at = (datetime.now(timezone.utc) + timedelta(seconds=20)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     cron_job = {
-        "name": f"{args.from_agent}→{args.to}: {args.type}",
+        "name": f"AGENTCREATED: {args.from_agent}→{args.to}: {args.type}",
         "schedule": {"kind": "at", "at": fire_at},
         "sessionTarget": "isolated",
         "agentId": args.to,
@@ -165,10 +186,10 @@ def send(args):
             "kind": "agentTurn",
             "message": agent_message,
         },
-        "deleteAfterRun": not getattr(args, "keep", False),
     }
 
-    # 如有 notify_user，在 cron 上配置 delivery，由 OpenClaw 自动发送 agent 回复给用户
+    # 如有 notify_user，在 cron job 上配置 delivery announce
+    # OpenClaw 会将目标 agent 的回复自动通过飞书投递给用户，无需 agent 额外调用
     if args.notify_user:
         open_id = resolve_open_id(args.notify_user, args.to)
         cron_job["delivery"] = {
@@ -177,30 +198,30 @@ def send(args):
             "to": open_id,
         }
 
-    print_info(f"协调: {args.from_agent} → {args.to} ({args.type})")
+    print_info(f"协调：{args.from_agent} → {args.to} ({args.type})")
     if args.notify_user:
-        print_info(f"完成后自动通知: {args.notify_user}（通过 {get_feishu_account(args.to)} delivery）")
+        print_info(f"delivery announce: {args.notify_user} → {args.to}")
     print()
     print(f"{Colors.BOLD}📨 请将以下 JSON 作为参数调用 cron.add 工具：{Colors.END}")
     print()
     print(json.dumps(cron_job, indent=2, ensure_ascii=False))
     print()
-    print_info(f"触发时间: {fire_at}（约 20 秒后）")
+    print_info(f"触发时间：{fire_at}（约 20 秒后）")
 
 
 def reply_human(args):
-    """生成 cron.add 参数 JSON，通过 delivery 向用户发送飞书消息。
+    """生成 cron.add 参数 JSON，委托 agent 执行任务并将结果汇报给用户。
 
-    利用 OpenClaw Cron 的 delivery 机制，通过指定 agent 绑定的飞书 account 自动发送。
-    不需要 feishu app 凭证（appId/appSecret），由 OpenClaw 系统处理。
+    与 send 类似，创建 cron job 让目标 agent 执行任务。
+    区别：reply-human 始终配置 delivery announce，agent 执行完任务后结果自动投递给用户。
+    open_id 从统一的 users.json 中按 username + agent_id 查找。
     """
     open_id = resolve_open_id(args.username, args.agent_id)
-    feishu_account = get_feishu_account(args.agent_id)
 
     fire_at = (datetime.now(timezone.utc) + timedelta(seconds=20)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     cron_job = {
-        "name": f"reply-human: {args.username}",
+        "name": f"AGENTCREATED: {args.agent_id} → {args.username}",
         "schedule": {"kind": "at", "at": fire_at},
         "sessionTarget": "isolated",
         "agentId": args.agent_id,
@@ -213,17 +234,16 @@ def reply_human(args):
             "channel": "feishu",
             "to": open_id,
         },
-        "deleteAfterRun": not getattr(args, "keep", False),
     }
 
-    print_info(f"汇报: {args.agent_id} → {args.username} ({open_id})")
-    print_info(f"飞书账号: {feishu_account}")
+    print_info(f"委托执行：{args.agent_id}，结果汇报给 {args.username} ({open_id})")
+    print_info(f"delivery announce → {args.agent_id}")
     print()
     print(f"{Colors.BOLD}📨 请将以下 JSON 作为参数调用 cron.add 工具：{Colors.END}")
     print()
     print(json.dumps(cron_job, indent=2, ensure_ascii=False))
     print()
-    print_info(f"触发时间: {fire_at}（约 20 秒后，OpenClaw 通过 {feishu_account} 发送）")
+    print_info(f"触发时间：{fire_at}（约 20 秒后，OpenClaw 自动投递）")
 
 
 def user_add(args):
@@ -313,15 +333,46 @@ def user_get(args):
 
 def list_agents(args):
     """列出所有可用 Agent"""
+    accounts = load_agent_accounts()
+    mappings = accounts.get("mappings", {})
+    
     print(f"""
 {Colors.BOLD}🤖 可用 Agent 列表{Colors.END}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """)
     for agent_id, info in AGENTS.items():
+        account_id = mappings.get(agent_id, {}).get("accountId", "未配置")
         print(f"  {Colors.BOLD}{agent_id:10s}{Colors.END}  {info['name']}")
-        print(f"  {'':10s}  职责: {info['role']}")
-        print(f"  {'':10s}  飞书账号: {info['feishu_account']}")
+        print(f"  {'':10s}  职责：{info['role']}")
+        print(f"  {'':10s}  AccountId: {account_id}")
         print()
+
+
+def get_account_id_cmd(args):
+    """获取指定 agent 的 accountId"""
+    account_id = get_account_id(args.agent_id)
+    print_success(f"Agent '{args.agent_id}' 的 accountId: {account_id}")
+
+
+def generate_message_command(args):
+    """生成 message 工具调用命令，包含正确的 accountId"""
+    account_id = get_account_id(args.agent_id)
+    
+    message_cmd = {
+        "action": "send",
+        "channel": "feishu",
+        "accountId": account_id,
+        "target": f"user:{args.open_id}",
+        "message": args.message,
+    }
+    
+    print_info(f"为 Agent '{args.agent_id}' 生成 message 工具调用命令")
+    print_info(f"使用 accountId: {account_id}")
+    print()
+    print(f"{Colors.BOLD}📨 请使用以下参数调用 message 工具：{Colors.END}")
+    print()
+    print(json.dumps(message_cmd, indent=2, ensure_ascii=False))
+    print()
 
 
 def main():
@@ -331,12 +382,14 @@ def main():
         epilog="""
 示例:
   %(prog)s send --from dev --to ops --message "请部署 main 分支到生产环境"
-  %(prog)s reply-human --agent-id sop --username cyril --message "部署已完成"
+  %(prog)s reply-human --agent-id ops --username cyril --message "开始 v2.1.0 上线部署任务，汇报部署结果给 cyril"
   %(prog)s user add --username cyril --name "Cyril" --agent-id dev --open-id ou_xxx
   %(prog)s user list
   %(prog)s user get --username cyril
   %(prog)s user remove --username cyril
   %(prog)s list-agents
+  %(prog)s get-account-id --agent-id dev
+  %(prog)s message-cmd --agent-id dev --open-id ou_xxx --message "测试消息"
         """,
     )
 
@@ -346,25 +399,36 @@ def main():
     send_parser = subparsers.add_parser("send", help="生成发送给目标 agent 的 crontab JSON")
     send_parser.add_argument("--from", dest="from_agent", required=True, help="发送方 Agent ID")
     send_parser.add_argument("--to", required=True, help="目标 Agent ID")
-    send_parser.add_argument("--type", default="request", choices=["request", "response", "notify"], help="消息类型 (默认: request)")
+    send_parser.add_argument("--type", default="request", choices=["request", "response", "notify"], help="消息类型 (默认：request)")
     send_parser.add_argument("--message", required=True, help="消息内容")
     send_parser.add_argument("--reply-to", default=None, help="回复的原始消息 timestamp（可选）")
-    send_parser.add_argument("--keep", action="store_true", help="任务执行后不删除（用于调试）")
     send_parser.add_argument("--notify-user", dest="notify_user", default=None,
-                             help="任务完成后需通知的用户名（目标 agent 用自己的 users.json 查 open_id 并调 reply-human）")
+                             help="任务完成后需通知的用户名（在 cron job 上配置 delivery announce，自动投递结果给用户）")
     send_parser.set_defaults(func=send)
 
-    # reply-human 命令
-    reply_parser = subparsers.add_parser("reply-human", help="生成 cron delivery JSON，通过飞书向用户汇报结果")
+    # reply-human 命令（委托 agent 执行任务，结果通过 delivery announce 汇报给用户）
+    reply_parser = subparsers.add_parser("reply-human", help="委托 agent 执行任务并将结果汇报给用户（= send + 必配 delivery announce）")
     reply_parser.add_argument("--agent-id", dest="agent_id", required=True,
-                               help="当前 Agent ID（用于确定飞书账号）")
-    reply_parser.add_argument("--username", required=True, help="用户名（从当前 agent 的 users.json 查找 open_id）")
-    reply_parser.add_argument("--message", required=True, help="消息内容")
+                               help="委托 Agent ID（执行任务的 agent）")
+    reply_parser.add_argument("--username", required=True, help="结果汇报给谁（从 users.json 查找该 agent 下的 open_id）")
+    reply_parser.add_argument("--message", required=True, help="任务描述（agent 执行后结果自动投递给用户）")
     reply_parser.set_defaults(func=reply_human)
 
     # list-agents 命令
     list_parser = subparsers.add_parser("list-agents", help="列出可用 Agent")
     list_parser.set_defaults(func=list_agents)
+
+    # get-account-id 命令
+    get_account_parser = subparsers.add_parser("get-account-id", help="获取指定 agent 的 accountId")
+    get_account_parser.add_argument("--agent-id", dest="agent_id", required=True, help="Agent ID")
+    get_account_parser.set_defaults(func=get_account_id_cmd)
+
+    # message-cmd 命令（生成 message 工具调用命令）
+    message_parser = subparsers.add_parser("message-cmd", help="生成 message 工具调用命令（含正确的 accountId）")
+    message_parser.add_argument("--agent-id", dest="agent_id", required=True, help="Agent ID")
+    message_parser.add_argument("--open-id", required=True, help="目标用户 open_id")
+    message_parser.add_argument("--message", required=True, help="消息内容")
+    message_parser.set_defaults(func=generate_message_command)
 
     # user 子命令组
     user_parser = subparsers.add_parser(

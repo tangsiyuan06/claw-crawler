@@ -13,7 +13,7 @@
 多 Agent 协作的**执行工具层**，提供跨 Agent 通讯和人类汇报的底层能力。
 
 - **Agent → Agent**：通过 crontab 消息总线实现异步协调（任务委派、结果回传、状态通知）
-- **Agent → Human**：通过飞书 API 向人类主动汇报任务结果
+- **Agent → Human**：创建 cron job 时配置 `delivery`，agent 执行完任务后由 OpenClaw 自动投递结果给用户
 - **用户管理**：每个 Agent 在自己的工作空间维护用户列表
 
 协作的流程规范和准则定义在 `agent-collaboration-sop` 技能中，本技能负责执行。
@@ -38,7 +38,7 @@ Agent A                    OpenClaw Cron                 Agent B
   │                            │  agentTurn → Agent B       │
   │                            │  (isolated session)        │
   │                            │ ──────────────────────────►│
-  │                            │  (deleteAfterRun: true)    │
+  │                            │                            │
   │                            │                            │
   │                            │  3. Agent B 处理并回传     │
 ```
@@ -47,7 +47,7 @@ Agent A                    OpenClaw Cron                 Agent B
 - `schedule.kind: "at"` + ISO 8601 时间戳，约 20 秒后触发
 - `agentId` 指定目标 agent
 - `sessionTarget: "isolated"` + `payload.kind: "agentTurn"` 创建独立会话，agent 主动处理消息
-- `deleteAfterRun: true` 投递后自动清理
+- 已执行的 job 通过独立的定时清理任务统一处理
 
 **为什么用 isolated 而不是 main？**
 - Agent 通常在飞书会话中活动（如 `agent:sop:feishu:feishu-sop`），不监听 webchat main session
@@ -58,7 +58,7 @@ Agent A                    OpenClaw Cron                 Agent B
 
 ### Agent → Human 汇报（Cron Delivery）
 
-任务完成后，Agent 通过 `reply-human` 生成 cron.add JSON（含 `delivery` 配置），由 OpenClaw 系统通过当前 agent 绑定的飞书 channel 自动发送消息。不需要飞书 app 凭证。
+回复 human 是 OpenClaw cron job 的内置能力。创建 cron job 时配置 `delivery`（指定 channel 和用户 open_id），agent 执行完任务后，OpenClaw 自动将结果投递给用户。`send --notify-user` 和 `reply-human` 都是生成含 delivery 配置的 cron.add JSON。
 
 ---
 
@@ -87,7 +87,7 @@ Agent A                    OpenClaw Cron                 Agent B
 | `type` | string | `request` / `response` / `notify` |
 | `payload` | string | 消息正文内容 |
 | `reply_to` | string\|null | 回复的原始消息 timestamp（可选） |
-| `notify_user` | string\|null | 任务完成后需通知的用户名（目标 agent 用自己的 open_id 调 reply-human） |
+| `notify_user` | string\|null | 任务完成后需通知的用户名（cron job 配置 delivery 自动投递） |
 | `timestamp` | string | ISO 8601 格式时间戳 |
 
 ### 消息类型说明
@@ -111,18 +111,20 @@ uv run skills/agent-coordinator/scripts/coordinator.py send \
 
 输出一段 crontab JSON，需要将此 JSON 作为参数调用 `cron.add` 工具完成发送。
 
-### 向人类汇报结果（Cron Delivery）
+### 委托 Agent 执行任务并汇报给用户（reply-human）
 
-通过 `--username` 指定目标用户，自动从当前 agent 的 `users.json` 查找 open_id，生成含 `delivery` 配置的 cron.add JSON。
+与 `send` 一样创建 cron job 让 agent 执行任务，区别是**始终配置 delivery**，agent 执行完后结果自动投递给用户。
+
+通过 `--agent-id` 指定委托 agent，`--username` 指定汇报对象，自动从 `users.json` 查找该 agent 下的 open_id 配置到 delivery 中。
 
 ```bash
 uv run skills/agent-coordinator/scripts/coordinator.py reply-human \
+  --agent-id ops \
   --username cyril \
-  --message "代码审查已完成，发现 2 个问题"
+  --message "开始 v2.1.0 上线部署任务，汇报部署结果给 cyril"
 ```
 
-输出 cron.add JSON，需要将此 JSON 作为参数调用 `cron.add` 工具完成发送。
-OpenClaw 通过当前 agent 绑定的飞书 channel 自动投递，无需飞书 app 凭证。
+输出 cron.add JSON（含 delivery 配置），需要将此 JSON 作为参数调用 `cron.add` 工具完成发送。
 
 ### 用户管理
 
@@ -165,14 +167,14 @@ uv run skills/agent-coordinator/scripts/coordinator.py list-agents
 1. 运行 `send` 命令生成 crontab JSON
 2. 将输出的 JSON 作为参数调用 `cron.add` 工具
 3. 约 20 秒后，目标 agent 在独立会话中被唤醒，收到 agentTurn 消息并执行任务
-4. 如设置了 `--notify-user`，目标 agent 执行完毕后应调 `reply-human` 向用户汇报
+4. 如设置了 `--notify-user`，cron job 已配置 delivery，agent 执行完毕后结果自动投递给用户
 
 ### reply-human 命令
 
-1. 确保用户已通过 `user add` 添加到当前 agent 的用户列表
-2. 运行 `reply-human --username xxx --message "..."` 生成 cron delivery JSON
+1. 确保用户已通过 `user add --agent-id <委托agent>` 注册了 open_id
+2. 运行 `reply-human --agent-id <委托agent> --username xxx --message "任务描述"` 生成 cron.add JSON（含 delivery）
 3. 将输出的 JSON 作为参数调用 `cron.add` 工具
-4. 约 20 秒后，OpenClaw 通过当前 agent 的飞书 channel 自动发送消息给用户
+4. 约 20 秒后，委托 agent 执行任务，结果通过 delivery 自动投递给用户
 
 协作场景示例参见 `skills/agent-collaboration-sop/SKILL.md`。
 
@@ -211,7 +213,7 @@ uv run skills/agent-coordinator/scripts/coordinator.py list-agents
 
 1. **消息延迟**：cron.add 一次性任务约 20 秒后触发，不适用于实时交互
 2. **单向传递**：每次 send 只发送一条消息，双向协作需要双方各自 send
-3. **自动清理**：`deleteAfterRun: true` 确保任务投递后自动删除，不会积压
+3. **Job 清理**：已执行的 job 通过独立的每日清理任务统一处理，不使用 `deleteAfterRun`
 4. **独立会话处理**：目标 agent 在 isolated session 中处理消息，无前置对话上下文，因此消息信封应包含完整的任务信息
 5. **消息识别**：收到 agentTurn 消息时，检查是否包含 `agent-coordinator/v1` 协议标识来判断是否为协调消息
 6. **cron.add 是内置工具**：`send` 命令只生成 JSON 参数，需要 agent 手动调用 `cron.add` 完成投递
