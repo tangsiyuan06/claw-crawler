@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UI 设计师转岗 PSCDRCAD 平面设计知识库</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            line-height: 1.8; color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 40px 20px; color: white; }
+        header h1 { font-size: 2.5em; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+        header p { font-size: 1.2em; opacity: 0.9; }
+        .nav-tabs { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 20px 0; }
+        .nav-tab {
+            background: rgba(255,255,255,0.2); color: white; padding: 12px 24px;
+            border: none; border-radius: 25px; cursor: pointer; font-size: 1em; transition: all 0.3s;
+        }
+        .nav-tab:hover, .nav-tab.active { background: white; color: #667eea; }
+        .section {
+            background: white; border-radius: 15px; padding: 30px; margin: 20px 0;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2); display: none;
+        }
+        .section.active { display: block; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        h2 { color: #667eea; border-bottom: 3px solid #667eea; padding-bottom: 10px; margin-bottom: 20px; }
+        h3 { color: #764ba2; margin: 25px 0 15px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 12px 15px; text-align: left; border: 1px solid #e0e0e0; }
+        th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        tr:nth-child(even) { background: #f8f9fa; }
+        tr:hover { background: #e8e8ff; }
+        .priority-high { color: #e74c3c; font-weight: bold; }
+        .priority-medium { color: #f39c12; font-weight: bold; }
+        .priority-low { color: #27ae60; }
+        .code-block {
+            background: #2d2d2d; color: #f8f8f2; padding: 20px; border-radius: 8px;
+            overflow-x: auto; margin: 15px 0; font-family: monospace; white-space: pre;
+        }
+        .checklist { list-style: none; }
+        .checklist li { padding: 10px 0; padding-left: 30px; position: relative; }
+        .checklist li:before { content: "☐"; position: absolute; left: 0; color: #667eea; font-size: 1.2em; }
+        .highlight-box {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            border-left: 4px solid #667eea; padding: 20px; margin: 20px 0; border-radius: 0 8px 8px 0;
+        }
+        .tag { display: inline-block; padding: 4px 12px; border-radius: 15px; font-size: 0.85em; margin: 2px; }
+        .tag-ai { background: #e8f5e9; color: #2e7d32; }
+        .tag-skill { background: #e3f2fd; color: #1565c0; }
+        .tag-hot { background: #ffebee; color: #c62828; }
+        footer { text-align: center; padding: 30px; color: white; opacity: 0.8; }
+        .back-link {
+            display: inline-block; margin-top: 20px; padding: 10px 20px;
+            background: white; color: #667eea; text-decoration: none; border-radius: 25px; font-weight: bold;
+        }
+        .back-link:hover { background: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🕷️ UI 设计师转岗 PSCDRCAD 平面设计知识库</h1>
+            <p>AI 大环境下的技能转型指南 | 2026 年 3 月更新</p>
+        </header>
+        <nav class="nav-tabs">
+            <button class="nav-tab active" onclick="showSection('overview')">📋 概述</button>
+            <button class="nav-tab" onclick="showSection('skills')">🎨 核心技能</button>
+            <button class="nav-tab" onclick="showSection('ai-trends')">🤖 AI 趋势</button>
+            <button class="nav-tab" onclick="showSection('learning')">📚 学习路径</button>
+            <button class="nav-tab" onclick="showSection('salary')">💰 薪资参考</button>
+            <button class="nav-tab" onclick="showSection('resources')">🔗 资源推荐</button>
+        </nav>
+        <div id="overview" class="section active">
+            <h2>📖 PSCDRCAD 含义解析</h2>
+            <div class="highlight-box">
+                <p><strong>PSCDRCAD</strong> 是平面设计行业常用软件组合的缩写：</p>
+                <ul style="margin-top: 15px; padding-left: 20px;">
+                    <li><strong>PS</strong> = Photoshop（图像处理）</li>
+                    <li><strong>CDR</strong> = CorelDRAW（矢量图形设计）</li>
+                    <li><strong>CAD</strong> = Computer Aided Design（计算机辅助设计）</li>
+                </ul>
+            </div>
+            <h3>📋 岗位职责对应能力</h3>
+            <div class="code-block">┌─────────────────────────────────────────────────────────────┐
+│  岗位职责                    →  需要掌握的技能              │
+├─────────────────────────────────────────────────────────────┤
+│  1. 活动海报、延展物料设计   →  PS/AI 排版、品牌 VI 规范     │
+│  2. 门店物料设计及更新       →  CDR 印刷输出、工艺知识      │
+│  3. 终端陈列标准化指导       →  CAD 基础、空间布局能力      │
+│  4. 门店物料统筹管理         →  项目管理、供应商沟通        │
+└─────────────────────────────────────────────────────────────┘</div>
+            <h3>✅ UI 设计师转岗优势</h3>
+            <ul class="checklist">
+                <li>数字设计基础扎实（PS/AI 已掌握）</li>
+                <li>用户体验思维（可应用于门店陈列设计）</li>
+                <li>规范化工作习惯（利于物料统筹管理）</li>
+            </ul>
+            <h3>⚠️ 需要补足的技能</h3>
+            <ul class="checklist">
+                <li>印刷工艺知识 - 与数字输出的本质区别</li>
+                <li>CorelDRAW - 印刷行业主流软件</li>
+                <li>线下空间思维 - 从屏幕到实物的转换</li>
+                <li>供应链沟通 - 与印刷厂、制作方协作</li>
+            </ul>
+        </div>
+        <div id="skills" class="section">
+            <h2>🎨 岗位核心技能矩阵</h2>
+            <h3>硬技能要求</h3>
+            <table>
+                <thead><tr><th>技能类别</th><th>具体能力</th><th>优先级</th></tr></thead>
+                <tbody>
+                    <tr><td>设计软件</td><td>Photoshop、CorelDRAW、Illustrator、InDesign、CAD</td><td class="priority-high">⭐⭐⭐</td></tr>
+                    <tr><td>AI 工具</td><td>Midjourney、Stable Diffusion、即梦、可灵</td><td class="priority-high">⭐⭐⭐</td></tr>
+                    <tr><td>手绘能力</td><td>草图绘制、插画基础、快速表达创意</td><td class="priority-medium">⭐⭐</td></tr>
+                    <tr><td>短视频剪辑</td><td>剪映、Premiere、After Effects 基础</td><td class="priority-medium">⭐⭐</td></tr>
+                    <tr><td>文案创作</td><td>营销文案、品牌故事、社交媒体内容</td><td class="priority-medium">⭐⭐</td></tr>
+                    <tr><td>3D 渲染</td><td>C4D、Blender、KeyShot</td><td class="priority-low">⭐</td></tr>
+                </tbody>
+            </table>
+            <h3>📊 2026 招聘市场 AI 技能需求</h3>
+            <div class="highlight-box">
+                <p><strong>AI 技能已成为平面设计师标配</strong>：</p>
+                <ul style="margin-top: 15px; padding-left: 20px;">
+                    <li><span class="tag tag-hot">AI 设计师</span> 100% 要求 AIGC 工具熟练度</li>
+                    <li><span class="tag tag-skill">品牌设计师</span> 60% 要求掌握 AI 辅助工具</li>
+                    <li><span class="tag tag-skill">视觉设计师</span> 45% 提及 AI 应用能力</li>
+                    <li><span class="tag tag-skill">游戏 UI 设计师</span> 30% 要求 AIGC 应用经验</li>
+                </ul>
+            </div>
+        </div>
+        <div id="ai-trends" class="section">
+            <h2>🤖 AI 大环境热门话题与概念</h2>
+            <h3>🔥 必知 AI 设计趋势（2025-2026）</h3>
+            <table>
+                <thead><tr><th>热门概念</th><th>说明</th><th>应用场景</th></tr></thead>
+                <tbody>
+                    <tr><td><span class="tag tag-ai">AIGC 工作流</span></td><td>AI 生成内容全流程整合</td><td>海报快速出图、素材生成</td></tr>
+                    <tr><td><span class="tag tag-ai">LoRA 模型训练</span></td><td>定制专属 AI 风格模型</td><td>品牌视觉统一化</td></tr>
+                    <tr><td><span class="tag tag-ai">ControlNet</span></td><td>精准控制 AI 生成构图</td><td>商业级海报制作</td></tr>
+                    <tr><td><span class="tag tag-ai">AI 视频生成</span></td><td>Runway、可灵、即梦等工具</td><td>短视频内容创作</td></tr>
+                    <tr><td><span class="tag tag-ai">智能排版</span></td><td>AI 自动布局、文字避让</td><td>电商详情页、社交媒体</td></tr>
+                    <tr><td><span class="tag tag-ai">数字资产库</span></td><td>AI 生成内容标准化管理</td><td>企业品牌资产沉淀</td></tr>
+                </tbody>
+            </table>
+            <h3>🛠️ 推荐学习的 AI 工具栈</h3>
+            <div class="code-block">图像生成：Midjourney v6、Stable Diffusion XL、即梦 AI、可灵
+视频生成：Runway Gen-3、剪映 AI、即梦视频
+设计辅助：Adobe Firefly、Photoshop AI 填充
+工作流搭建：ComfyUI、Coze（扣子）</div>
+            <div class="highlight-box">
+                <p><strong>💡 核心竞争力建议：</strong>"AI 不是替代设计师，而是替代不会用 AI 的设计师"</p>
+                <p style="margin-top: 10px;">建议将 <strong>AI 工作流能力</strong> 作为核心竞争力打造。</p>
+            </div>
+        </div>
+        <div id="learning" class="section">
+            <h2>📚 转岗学习路径建议</h2>
+            <h3>📅 第一阶段（1-2 周）：软件补强</h3>
+            <ul class="checklist">
+                <li>CorelDRAW 基础操作（重点：印刷输出、矢量绘图）</li>
+                <li>CAD 基础入门（重点：平面图绘制、尺寸标注）</li>
+                <li>印刷工艺知识（纸张、工艺、成本）</li>
+            </ul>
+            <h3>📅 第二阶段（2-4 周）：AI 工具整合</h3>
+            <ul class="checklist">
+                <li>Midjourney 提示词工程</li>
+                <li>Stable Diffusion 本地部署 + ControlNet</li>
+                <li>AI 工作流搭建（ComfyUI 基础）</li>
+            </ul>
+            <h3>📅 第三阶段（持续）：综合能力提升</h3>
+            <ul class="checklist">
+                <li>短视频剪辑（剪映专业版）</li>
+                <li>文案创作与品牌叙事</li>
+                <li>项目统筹与供应商管理</li>
+            </ul>
+            <div class="highlight-box">
+                <h4>🎯 关键建议</h4>
+                <p><strong>优势转化：</strong>充分利用 UI 设计经验，将数字设计思维应用到线下场景</p>
+                <p><strong>差异化竞争：</strong>AI 工具 + 传统设计能力的组合是最具竞争力的</p>
+            </div>
+        </div>
+        <div id="salary" class="section">
+            <h2>💰 行业薪资参考（2026 年 3 月）</h2>
+            <table>
+                <thead><tr><th>岗位</th><th>经验要求</th><th>薪资范围</th><th>主要城市</th></tr></thead>
+                <tbody>
+                    <tr><td>平面设计师</td><td>3-5 年</td><td>¥6k-15k</td><td>一线/新一线</td></tr>
+                    <tr><td>品牌设计师</td><td>3-5 年</td><td>¥10k-20k</td><td>上海/北京</td></tr>
+                    <tr><td>AI 设计师</td><td>不限</td><td>¥10k-30k</td><td>上海/深圳</td></tr>
+                    <tr><td>视觉设计师</td><td>3-5 年</td><td>¥15k-25k</td><td>广州/深圳</td></tr>
+                    <tr><td>美术指导</td><td>3-5 年</td><td>¥15k-25k</td><td>上海</td></tr>
+                </tbody>
+            </table>
+            <div class="highlight-box">
+                <p><strong>📈 薪资趋势：</strong>掌握 AI 技能的设计师薪资普遍高出 20%-50%</p>
+                <p><strong>🎯 目标建议：</strong>建议将 AI 设计师作为中期目标，薪资天花板更高</p>
+            </div>
+        </div>
+        <div id="resources" class="section">
+            <h2>🔗 推荐学习资源</h2>
+            <h3>📖 在线平台</h3>
+            <ul class="checklist">
+                <li><strong>优设网</strong> (uisdc.com) - AI 设计教程、行业干货</li>
+                <li><strong>站酷</strong> (zcool.com.cn) - 设计作品、招聘资讯、行业交流</li>
+                <li><strong>优设 AIGC</strong> - 专注 AI 设计学习内容</li>
+            </ul>
+            <h3>💬 社群资源</h3>
+            <ul class="checklist">
+                <li>优设官方微信群（14 个垂直社群）</li>
+                <li>平面品牌设计师交流群</li>
+                <li>AIGC 自学交流群</li>
+            </ul>
+            <h3>🛠️ 工具资源</h3>
+            <div class="code-block">AI 绘画：Midjourney、Stable Diffusion、即梦 AI
+AI 视频：Runway、可灵、剪映 AI
+设计协作：Figma、MasterGo
+灵感收集：Pinterest、Behance、Dribbble</div>
+            <div class="highlight-box">
+                <p><strong>📚 持续更新：</strong>本知识库将持续跟踪行业最新动态</p>
+            </div>
+        </div>
+        <footer>
+            <p>🕷️ CrawlerBot 知识库 | 最后更新：2026 年 3 月 9 日</p>
+            <p>数据来源：站酷招聘、优设网、行业调研报告</p>
+            <a href="/" class="back-link">🏠 返回主页</a>
+        </footer>
+    </div>
+    <script>
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+            event.target.classList.add('active');
+            window.location.hash = sectionId;
+        }
+        window.addEventListener('load', function() {
+            const hash = window.location.hash.slice(1);
+            if (hash) {
+                const tab = document.querySelector('.nav-tab[onclick="showSection(\'' + hash + '\')"]');
+                if (tab) tab.click();
+            }
+        });
+    </script>
+</body>
+</html>

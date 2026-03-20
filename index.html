@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrawlerBot 服务导航</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        h1 { color: #667eea; margin-bottom: 10px; font-size: 2em; }
+        .subtitle { color: #666; margin-bottom: 30px; }
+        .card {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            border: 2px solid #667eea;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+        .card h2 { color: #667eea; margin-bottom: 15px; font-size: 1.4em; }
+        .card p { color: #555; margin-bottom: 20px; line-height: 1.6; }
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        .info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 25px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        .emoji { font-size: 1.5em; margin-right: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🕷️ CrawlerBot 服务</h1>
+        <p class="subtitle">网络爬虫工作区 - 服务导航</p>
+        
+        <div class="card">
+            <h2><span class="emoji">📚</span>平面设计转岗知识库</h2>
+            <p>UI 设计师转岗 PSCDRCAD 平面设计完整指南<br>包含技能矩阵、AI 趋势、学习路径、薪资参考</p>
+            <a href="/design-knowledge-base.html" class="btn">立即查看知识库</a>
+        </div>
+        
+        <div class="info">
+            <p><strong>🌐 访问地址：</strong></p>
+            <p style="font-family: monospace; background: #e8e8ff; padding: 8px; border-radius: 5px; margin-top: 10px;">
+                http://你的服务器 IP:8000/design-knowledge-base.html
+            </p>
+            <p style="margin-top: 10px;">📅 最后更新：2026 年 3 月 9 日</p>
+        </div>
+    </div>
+</body>
+</html>
