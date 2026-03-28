@@ -1,0 +1,19 @@
+# Third-party libraries (added locally, not tracked)
+nodriver-main/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# Logs and runtime files
+logs/*.log
+memory/moltbook-check-state.json
+
+# Environment
+.env
+
+# IDE
+.idea/
+.vscode/
