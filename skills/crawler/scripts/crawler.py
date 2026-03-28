@@ -1,181 +1,199 @@
 #!/usr/bin/env python3
 """
-Advanced Web Crawler for OpenClaw
-Handles JavaScript-heavy sites, anti-bot measures, and complex web structures.
+Crawler Registry Manager
+扫描 scripts/ 目录下所有爬虫脚本，读取其 CRAWLER_META，
+返回已开发脚本的域名覆盖范围和数据能力，供大模型决策使用。
+
+Usage:
+    python3 crawler.py list                     # 列出所有可用脚本（表格）
+    python3 crawler.py list --format json       # JSON 输出（供程序处理）
+    python3 crawler.py match --url "https://www.grubhub.com/restaurant/..."
+    python3 crawler.py info grubhub_menu        # 某脚本详情
+    python3 crawler.py run grubhub_menu --url "..." --output json
 """
 
 import argparse
+import ast
 import json
-import time
+import os
+import subprocess
 import sys
-from urllib.parse import urljoin, urlparse
+from pathlib import Path
 from typing import Dict, List, Optional
+from urllib.parse import urlparse
 
-# Try to import required libraries
-try:
-    from playwright.sync_api import sync_playwright, Browser, Page
-    from bs4 import BeautifulSoup
-    import requests
-except ImportError as e:
-    print(f"Error: Missing required dependencies: {e}", file=sys.stderr)
-    print("Install with: pip install playwright beautifulsoup4 requests", file=sys.stderr)
-    sys.exit(1)
+SCRIPTS_DIR = Path(__file__).parent
 
-class WebCrawler:
-    def __init__(self, headless: bool = True, timeout: int = 30000):
-        self.headless = headless
-        self.timeout = timeout
-        self.browser: Optional[Browser] = None
-        
-    def __enter__(self):
-        self.playwright = sync_playwright().start()
-        self.browser = self.playwright.chromium.launch(
-            headless=self.headless,
-            args=[
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu'
-            ]
-        )
-        return self
-        
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.browser:
-            self.browser.close()
-        if hasattr(self, 'playwright'):
-            self.playwright.stop()
-    
-    def create_context(self, user_agent: str = None):
-        """Create browser context with custom settings"""
-        context_options = {
-            'viewport': {'width': 1920, 'height': 1080},
-            'bypass_csp': True,
-        }
-        if user_agent:
-            context_options['user_agent'] = user_agent
-        else:
-            context_options['user_agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        
-        return self.browser.new_context(**context_options)
-    
-    def crawl_page(self, url: str, selector: str = None, wait_for: str = None, 
-                   js_enabled: bool = True, auth: tuple = None) -> Dict:
-        """Crawl a single page and extract content"""
-        with self.create_context() as context:
-            page = context.new_page()
-            
-            # Set extra HTTP headers if needed
-            if auth:
-                page.set_extra_http_headers({
-                    'Authorization': f'Basic {auth[0]}:{auth[1]}'
-                })
-            
-            # Navigate to page
-            response = page.goto(url, wait_until='networkidle' if js_enabled else 'load')
-            
-            # Wait for specific element if requested
-            if wait_for:
-                page.wait_for_selector(wait_for, timeout=self.timeout)
-            elif js_enabled:
-                # Wait a bit for JS to execute
-                page.wait_for_timeout(2000)
-            
-            # Get page content
-            html = page.content()
-            soup = BeautifulSoup(html, 'html.parser')
-            
-            # Extract title
-            title = page.title()
-            
-            # Extract main content based on selector or auto-detect
-            if selector:
-                elements = soup.select(selector)
-                content = '\n'.join([elem.get_text(strip=True) for elem in elements])
-            else:
-                # Auto-detect main content
-                main_content_selectors = [
-                    'main', 'article', '.article', '.post', '.content',
-                    '#content', '.main-content', '.entry-content'
-                ]
-                content = ""
-                for sel in main_content_selectors:
-                    elements = soup.select(sel)
-                    if elements:
-                        content = '\n'.join([elem.get_text(strip=True) for elem in elements])
-                        break
-                
-                if not content:
-                    # Fallback to body text
-                    content = soup.get_text(strip=True)
-            
-            # Extract metadata
-            meta_data = {
-                'url': url,
-                'title': title,
-                'status_code': response.status if response else 200,
-                'content_length': len(html),
-                'timestamp': time.time(),
-                'links': [urljoin(url, link.get('href')) for link in soup.find_all('a', href=True)],
-                'images': [urljoin(url, img.get('src')) for img in soup.find_all('img', src=True)]
-            }
-            
-            return {
-                'metadata': meta_data,
-                'content': content,
-                'html': html if js_enabled else None
-            }
 
-def main():
-    parser = argparse.ArgumentParser(description='Advanced Web Crawler')
-    parser.add_argument('--url', required=True, help='URL to crawl')
-    parser.add_argument('--selector', help='CSS selector for content extraction')
-    parser.add_argument('--wait-for', help='CSS selector to wait for before extracting')
-    parser.add_argument('--js', action='store_true', help='Enable JavaScript rendering')
-    parser.add_argument('--auth', help='Basic auth credentials (username:password)')
-    parser.add_argument('--user-agent', help='Custom User-Agent string')
-    parser.add_argument('--output', choices=['json', 'text', 'markdown'], default='json', 
-                       help='Output format')
-    parser.add_argument('--delay', type=int, default=0, help='Delay between requests (seconds)')
-    
-    args = parser.parse_args()
-    
-    # Parse auth if provided
-    auth = None
-    if args.auth:
-        if ':' in args.auth:
-            username, password = args.auth.split(':', 1)
-            auth = (username, password)
-        else:
-            print("Error: Auth must be in format 'username:password'", file=sys.stderr)
-            sys.exit(1)
-    
-    # Add delay if specified
-    if args.delay > 0:
-        time.sleep(args.delay)
-    
-    # Perform crawling
+# ─── Meta parser ─────────────────────────────────────────────────────────────
+
+def parse_meta(script_path: Path) -> Optional[Dict]:
+    """用 ast 安全解析脚本中的 CRAWLER_META 字典，不执行脚本。"""
     try:
-        with WebCrawler(headless=True) as crawler:
-            result = crawler.crawl_page(
-                url=args.url,
-                selector=args.selector,
-                wait_for=args.wait_for,
-                js_enabled=args.js,
-                auth=auth
-            )
-        
-        # Output based on format
-        if args.output == 'json':
-            print(json.dumps(result, indent=2, ensure_ascii=False))
-        elif args.output == 'text':
-            print(result['content'])
-        elif args.output == 'markdown':
-            print(f"# {result['metadata']['title']}\n\n{result['content']}")
-            
-    except Exception as e:
-        print(f"Error crawling {args.url}: {e}", file=sys.stderr)
+        source = script_path.read_text(encoding="utf-8")
+        tree = ast.parse(source)
+    except Exception:
+        return None
+
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+            and node.targets[0].id == "CRAWLER_META"
+            and isinstance(node.value, ast.Dict)
+        ):
+            try:
+                return ast.literal_eval(node.value)
+            except Exception:
+                return None
+    return None
+
+
+def load_all_metas() -> List[Dict]:
+    """扫描 scripts/ 目录，收集所有含 CRAWLER_META 的脚本。"""
+    results = []
+    for path in sorted(SCRIPTS_DIR.glob("*.py")):
+        if path.name.startswith("test_") or path.name == "crawler.py":
+            continue
+        meta = parse_meta(path)
+        if meta:
+            meta["_script"] = path.name
+            meta["_path"] = str(path)
+            results.append(meta)
+    return results
+
+
+# ─── Commands ────────────────────────────────────────────────────────────────
+
+def cmd_list(fmt: str):
+    metas = load_all_metas()
+    if not metas:
+        print("No crawler scripts with CRAWLER_META found.", file=sys.stderr)
+        sys.exit(0)
+
+    if fmt == "json":
+        print(json.dumps(metas, indent=2, ensure_ascii=False))
+        return
+
+    # 表格输出
+    col_w = [20, 30, 42, 10]
+    header = ["Script", "Domains", "Data", "Framework"]
+    sep = "  ".join("-" * w for w in col_w)
+    row_fmt = "  ".join(f"{{:<{w}}}" for w in col_w)
+
+    print(sep)
+    print(row_fmt.format(*header))
+    print(sep)
+    for m in metas:
+        domains = ", ".join(m.get("domains", []))
+        print(row_fmt.format(
+            m.get("name", m["_script"])[:col_w[0]],
+            domains[:col_w[1]],
+            m.get("data", "")[:col_w[2]],
+            m.get("framework", "")[:col_w[3]],
+        ))
+    print(sep)
+    print(f"\n{len(metas)} script(s) available.")
+
+
+def cmd_match(url: str):
+    """根据 URL 匹配最合适的脚本。"""
+    domain = urlparse(url).netloc.replace("www.", "")
+    metas = load_all_metas()
+
+    matched = []
+    for m in metas:
+        for d in m.get("domains", []):
+            if domain == d or domain.endswith("." + d) or d in domain:
+                matched.append(m)
+                break
+
+    if not matched:
+        result = {"matched": False, "domain": domain, "suggestion": "create_new"}
+        print(json.dumps(result, ensure_ascii=False))
+        return
+
+    best = matched[0]
+    result = {
+        "matched": True,
+        "domain": domain,
+        "script": best["_script"],
+        "name": best.get("name", ""),
+        "data": best.get("data", ""),
+        "example": best.get("example", ""),
+        "run": f"python3 {best['_script']} --url \"{url}\" --output json",
+    }
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+
+
+def cmd_info(script_name: str):
+    """打印某个脚本的完整 meta 信息。"""
+    # 支持 "grubhub_menu" 或 "grubhub_menu.py"
+    name = script_name if script_name.endswith(".py") else script_name + ".py"
+    path = SCRIPTS_DIR / name
+    if not path.exists():
+        print(f"Error: {name} not found in {SCRIPTS_DIR}", file=sys.stderr)
         sys.exit(1)
 
-if __name__ == '__main__':
+    meta = parse_meta(path)
+    if not meta:
+        print(f"Error: {name} has no CRAWLER_META", file=sys.stderr)
+        sys.exit(1)
+
+    meta["_script"] = name
+    print(json.dumps(meta, indent=2, ensure_ascii=False))
+
+
+def cmd_run(script_name: str, extra_args: List[str]):
+    """代理执行某个脚本，传递剩余参数。"""
+    name = script_name if script_name.endswith(".py") else script_name + ".py"
+    path = SCRIPTS_DIR / name
+    if not path.exists():
+        print(f"Error: {name} not found", file=sys.stderr)
+        sys.exit(1)
+
+    cmd = [sys.executable, str(path)] + extra_args
+    result = subprocess.run(cmd)
+    sys.exit(result.returncode)
+
+
+# ─── CLI ─────────────────────────────────────────────────────────────────────
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Crawler Registry Manager — 查询/匹配/执行已开发的爬虫脚本"
+    )
+    sub = parser.add_subparsers(dest="cmd", required=True)
+
+    # list
+    p_list = sub.add_parser("list", help="列出所有可用爬虫脚本")
+    p_list.add_argument("--format", choices=["table", "json"], default="table")
+
+    # match
+    p_match = sub.add_parser("match", help="根据 URL 匹配合适的脚本")
+    p_match.add_argument("--url", required=True)
+
+    # info
+    p_info = sub.add_parser("info", help="查看某脚本的详细 meta 信息")
+    p_info.add_argument("script")
+
+    # run
+    p_run = sub.add_parser("run", help="执行某脚本（透传剩余参数）")
+    p_run.add_argument("script")
+    p_run.add_argument("args", nargs=argparse.REMAINDER)
+
+    args = parser.parse_args()
+
+    if args.cmd == "list":
+        cmd_list(args.format)
+    elif args.cmd == "match":
+        cmd_match(args.url)
+    elif args.cmd == "info":
+        cmd_info(args.script)
+    elif args.cmd == "run":
+        cmd_run(args.script, args.args)
+
+
+if __name__ == "__main__":
     main()
