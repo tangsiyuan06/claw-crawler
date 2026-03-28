@@ -101,6 +101,64 @@ comments. Keep the language consistent within the file you edit.
 - Keep docs factual; avoid marketing language unless the file already uses it.
 - **新增爬虫脚本**：必须包含 `CRAWLER_META` 字典，保存到 `skills/crawler/scripts/`，开发日志写入 `skills/crawler/.learning/{site}.md`。完整流程见 `skills/crawler/SKILL.md`。
 
+## OpenClaw Runtime Constraints
+
+以下约束仅适用于在 OpenClaw 平台上运行的 agent，不影响本地 Claude Code 使用。
+
+### 执行模型：单轮同步 + session_spawn 异步
+
+OpenClaw 每次用户消息触发**一轮同步执行**，轮次结束后 agent 进入休眠。
+**没有隐式后台等待，不存在"完成后自动继续"机制。**
+
+常见错误模式（必须避免）：
+- ❌ "安装已启动，完成后我会继续配置" → 本轮结束，永远不会继续
+- ❌ "下载中，请稍候..." → 命令没有阻塞执行，结果丢失
+- ❌ 启动后台进程后说"稍后检查结果"
+
+**处理长耗时操作的两种正确方式：**
+
+#### 方式一：同步阻塞（耗时 < 2 分钟）
+
+所有 shell 命令在同一轮内阻塞执行，等命令返回后再输出结论：
+```bash
+# 安装依赖、等待完成、验证结果，一次性完成
+pip install nodriver beautifulsoup4 requests && python3 -c "import nodriver; print('OK')"
+```
+
+#### 方式二：session_spawn 异步（耗时长 / 需要独立环境）
+
+用 `session_spawn` 启动一个独立 agent session 执行耗时任务，当前 session 继续响应用户：
+
+```
+session_spawn:
+  identity: IDENTITY.md
+  payload:
+    kind: agentTurn
+    message: |
+      执行以下安装任务并在完成后通知用户：
+      1. conda create -n claw-crawler python=3.13 -y
+      2. pip install nodriver beautifulsoup4 requests websockets pytest
+      3. 验证：python3 -c "import nodriver; print('nodriver OK')"
+      完成后通过 Feishu 发送安装结果摘要。
+  sessionTarget: isolated
+```
+
+适用场景：conda 环境初始化、大文件下载、多步骤部署流程。
+- ✅ 派生 session 独立运行，不阻塞当前对话
+- ✅ 完成后可通过 Feishu 或 cron 回调通知
+- ✅ 若任务失败，派生 session 的日志独立可查
+
+### 文件编辑
+
+OpenClaw 的 Edit 工具要求 `oldText` 精确匹配，无正则、无容错。
+编辑失败的常见原因：空白符差异、文件被 cron 并发修改、同一 session 内多次编辑未重新读取。
+
+建议：
+- 复杂编辑用 Python 脚本读写，不依赖平台 Edit 工具
+- 每次编辑前先 Read，确认当前内容
+
+---
+
 ## Quick References
 - Web crawler registry: `skills/crawler/scripts/crawler.py` (match / run / list / info)
 - Site-specific scrapers: `skills/crawler/scripts/{site}_menu.py` (nodriver + CDP)
