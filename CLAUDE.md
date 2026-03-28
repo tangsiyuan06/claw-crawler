@@ -11,24 +11,28 @@ This is the **CrawlerBot** OpenClaw agent workspace — a revenue-focused web cr
 No centralized build or test runner exists. Scripts are executed directly.
 
 ### Crawler (main skill)
+
 ```bash
-# Basic fetch (no JS)
-python3 skills/crawler/scripts/crawler.py --url "https://example.com" --output json
+# 查询注册表 — 自动判断是否有现成脚本
+conda run -n claw-crawler python3 skills/crawler/scripts/crawler.py match --url "https://www.grubhub.com/restaurant/.../ID"
+# → matched: true  → 直接用 run 命令
+# → matched: false → 需要创建新脚本（见 skills/crawler/SKILL.md 创建模式）
 
-# JavaScript-heavy sites (uses Playwright + Chromium)
-python3 skills/crawler/scripts/crawler.py --url "https://example.com" --js --output markdown
+# 执行已注册脚本
+conda run -n claw-crawler python3 skills/crawler/scripts/crawler.py run grubhub_menu \
+  --url "https://www.grubhub.com/restaurant/.../ID" --output json
+conda run -n claw-crawler python3 skills/crawler/scripts/crawler.py run doordash_menu \
+  --url "https://www.doordash.com/store/902649" --output markdown
 
-# Target specific element
-python3 skills/crawler/scripts/crawler.py --url "https://example.com" --selector ".article-content" --output text
+# 查看所有已注册脚本
+conda run -n claw-crawler python3 skills/crawler/scripts/crawler.py list
 
-# Wait for dynamic content to appear
-python3 skills/crawler/scripts/crawler.py --url "https://example.com" --js --wait-for ".loaded-content"
-
-# Basic auth + rate limiting
-python3 skills/crawler/scripts/crawler.py --url "https://example.com" --auth "user:pass" --delay 2
+# 直接运行专用脚本
+conda run -n claw-crawler python3 skills/crawler/scripts/grubhub_menu.py --url "..." --output text
+conda run -n claw-crawler python3 skills/crawler/scripts/doordash_menu.py --url "..." --output json
 ```
 
-Requires: `pip install playwright beautifulsoup4 requests` and `playwright install chromium`
+Requires: `pip install nodriver beautifulsoup4 requests` (nodriver 使用系统 Chrome，无需单独安装浏览器内核)
 
 ### Agent Coordinator
 ```bash
@@ -63,18 +67,30 @@ Each capability lives in `skills/<name>/` with a `SKILL.md` manifest and `script
 ### Core skills
 | Skill | Purpose |
 |-------|---------|
-| `skills/crawler/` | CDP-based web crawling via Playwright |
+| `skills/crawler/` | nodriver (CDP) 反爬爬虫工坊，含注册表、专用脚本、记忆库 |
 | `skills/agent-cron-job/` | Inter-agent coordination and scheduling |
 | `skills/searxng/` | Privacy-respecting web search |
 | `skills/agent-collaboration-sop/` | P0-P3 priority protocol definitions |
 
-### CDP Crawling (how it works)
-`skills/crawler/scripts/crawler.py` uses Playwright (which wraps CDP) to control Chromium:
-- `wait_until='networkidle'` for JS-heavy pages, `'load'` for static pages
-- `bypass_csp=True` in browser context
-- Chrome 120 user-agent, 1920×1080 viewport
-- Auto-detects main content via semantic selectors: `main`, `article`, `.content`, etc.
-- Falls back to full body text if no semantic container found
+### Crawler Skill 架构
+`skills/crawler/` 是爬虫能力的完整载体，三种工作模式：
+
+| 模式 | 触发场景 | 入口 |
+|------|---------|------|
+| **执行** | 目标网站已注册 | `crawler.py match/run` |
+| **创建** | 新网站 | 读 `references/crawlerMemory.md` → `session.py` 探索 → 编写脚本 |
+| **总结** | 说"总结爬虫经验" | 从 `.learning/` 提取通用模式 → 更新记忆库 |
+
+关键文件：
+- `scripts/crawler.py` — 注册表管理器（match / run / list / info）
+- `scripts/{site}_menu.py` — 各站点专用 nodriver 爬虫
+- `scripts/session.py` — 持久浏览器会话（开发探索用）
+- `references/crawlerMemory.md` — 跨站点通用经验记忆库
+- `references/nodriver-guide.md` — nodriver CDP API 速查
+- `references/dev-environment.md` — 服务器部署与依赖说明
+- `.learning/{site}.md` — 各站点开发日志
+
+nodriver 反爬原理：直接使用系统 Chrome（非 Playwright 独立内核），CDP 读取响应 body，headless=False 可绕过 Cloudflare Bot Check。
 
 ### Inter-agent communication
 Agents communicate asynchronously via **OpenClaw cron jobs** (not direct messages):
@@ -113,12 +129,18 @@ SOP Agent drops JSON files into `task-queue/`. Crawler polls and processes them:
 - Docs and comments mix English and Chinese — keep language consistent within the file you edit
 - Scripts must be self-contained; avoid adding heavyweight dependencies
 
-## CDP Script Development Workflow
+## 新站点爬虫开发流程
 
-When writing new crawler scripts:
-1. Use `WebCrawler` as a context manager (`with WebCrawler() as crawler`)
-2. Prefer `--js` + `--wait-for` for SPAs; skip `--js` for static sites (faster)
-3. Use `--selector` to target specific DOM elements rather than parsing full-page text
-4. Output `--output json` for programmatic use; `--output markdown` for human-readable delivery
-5. Log errors to `stderr`; exit non-zero on failure
-6. Add `--help` and usage examples in any new CLI script
+开发新站点爬虫时，通过 crawler skill 的**创建模式**进行，完整流程见 `skills/crawler/SKILL.md`。要点：
+
+1. **先查注册表**：`crawler.py match --url "..."` — matched:false 才进入创建流程
+2. **加载记忆库**：读 `skills/crawler/references/crawlerMemory.md`，了解已知坑点
+3. **持久会话探索**：用 `session.py` 启动浏览器，编写内联代码连接并捕获 API（**不用 Playwright MCP**）
+4. **写开发日志**：探索中遇到的每个问题实时记录到 `skills/crawler/.learning/{site}.md`
+5. **编写生产脚本**：保存到 `skills/crawler/scripts/{site}_menu.py`，必须包含 `CRAWLER_META` 字典
+6. **nodriver 强制规则**：
+   - `cdp.network.enable()` 必须在 `tab.get()` 之前
+   - Handler 签名必须 `async def f(event, tab=None)`
+   - 禁止在 `ResponseReceived` 读 body（用 `LoadingFinished`）
+   - SPA 用轮询等待而非 `networkidle`
+7. **总结经验**：说"总结爬虫经验"，将本次经验写入记忆库

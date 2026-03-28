@@ -99,8 +99,12 @@ comments. Keep the language consistent within the file you edit.
 - If editing scripts under `skills/`, update related README usage examples.
 - If adding new scripts, include `--help` output and usage examples.
 - Keep docs factual; avoid marketing language unless the file already uses it.
+- **新增爬虫脚本**：必须包含 `CRAWLER_META` 字典，保存到 `skills/crawler/scripts/`，开发日志写入 `skills/crawler/.learning/{site}.md`。完整流程见 `skills/crawler/SKILL.md`。
 
 ## Quick References
-- Web crawler: `skills/crawler/scripts/crawler.py`
+- Web crawler registry: `skills/crawler/scripts/crawler.py` (match / run / list / info)
+- Site-specific scrapers: `skills/crawler/scripts/{site}_menu.py` (nodriver + CDP)
+- Crawler skill guide: `skills/crawler/SKILL.md` (execute / create / summarize modes)
+- Crawler memory: `skills/crawler/references/crawlerMemory.md`
 - Agent coordinator: `skills/agent-cron-job/scripts/coordinator.py`
 - Task queue format: `task-queue/README.md`

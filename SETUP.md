@@ -42,41 +42,56 @@ conda activate claw-crawler
 ### 2.2 安装 Python 依赖
 
 ```bash
-pip install playwright beautifulsoup4 requests httpx rich
+pip install nodriver beautifulsoup4 requests websockets httpx rich pytest
 ```
 
 各依赖用途：
 
 | 包 | 使用脚本 | 用途 |
 |----|---------|------|
-| `playwright` | `crawler.py`, `grubhub_menu.py` | CDP 浏览器自动化 |
-| `beautifulsoup4` | `crawler.py` | HTML 解析 |
-| `requests` | `crawler.py` | HTTP 请求 |
+| `nodriver` | `grubhub_menu.py`, `doordash_menu.py`, `session.py` | CDP 浏览器自动化（反爬主力） |
+| `websockets` | nodriver 内部依赖 | CDP WebSocket 通信 |
+| `beautifulsoup4` | `crawler.py` | 静态 HTML 解析 |
+| `requests` | `crawler.py` | 静态页面 HTTP 请求 |
 | `httpx` | `searxng.py` | 异步 HTTP 客户端 |
 | `rich` | `searxng.py` | 终端格式化输出 |
+| `pytest` | `test_*.py` | 单元测试 |
 
-### 2.3 安装 Playwright 浏览器内核
+### 2.3 安装系统 Chrome/Chromium
 
-```bash
-conda run -n claw-crawler playwright install chromium
-```
-
-> **注意**: Playwright 的 Chromium 与系统 Chromium 相互独立，必须单独安装。
-> 安装路径默认为 `~/.cache/ms-playwright/`，约 200MB。
-
-### 2.4 安装系统级浏览器依赖（如遇报错）
+nodriver 使用系统已安装的 Chrome/Chromium，**无需单独下载浏览器内核**。
 
 ```bash
-conda run -n claw-crawler playwright install-deps chromium
-# 或手动安装（Ubuntu）
-sudo apt-get install -y libnss3 libatk-bridge2.0-0 libdrm2 libxkbcommon0 libgbm1
+# Ubuntu/Debian
+sudo apt-get install -y chromium-browser
+# 或安装 Google Chrome
+wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+sudo apt-get install -y google-chrome-stable
+
+# 验证
+which chromium-browser || which google-chrome
 ```
+
+> **与 Playwright 的区别**：Playwright 需要 `playwright install chromium` 下载独立内核（约 200MB）；
+> nodriver 复用系统 Chrome，启动更快，浏览器指纹更接近真实用户，反爬效果更好。
+
+### 2.4 安装系统级浏览器依赖（无头模式如遇报错）
+
+```bash
+sudo apt-get install -y libnss3 libatk-bridge2.0-0 libdrm2 libxkbcommon0 libgbm1 \
+  libxss1 libasound2 libx11-xcb1
+```
+
+> 服务器上 headless=True 运行时需要这些依赖；headless=False 需额外安装 Xvfb：
+> `sudo apt-get install -y xvfb && Xvfb :99 -screen 0 1440x900x24 &`，设 `DISPLAY=:99`
 
 ### 2.5 验证安装
 
 ```bash
-conda run -n claw-crawler python3 skills/crawler/scripts/crawler.py --help
+conda run -n claw-crawler python3 -c "import nodriver; print('nodriver OK')"
+conda run -n claw-crawler python3 skills/crawler/scripts/crawler.py list
 conda run -n claw-crawler python3 skills/crawler/scripts/grubhub_menu.py --help
+conda run -n claw-crawler python3 skills/crawler/scripts/doordash_menu.py --help
 ```
 
 ---
@@ -163,14 +178,21 @@ mkdir -p memory logs reports task-queue docs knowledge-base
 ## 第七步：验证全部技能
 
 ```bash
-# 基础爬虫
-conda run -n claw-crawler python3 skills/crawler/scripts/crawler.py \
-  --url "https://example.com" --output text
+# 爬虫注册表
+conda run -n claw-crawler python3 skills/crawler/scripts/crawler.py list
 
-# Grubhub 专用爬虫
-conda run -n claw-crawler python3 skills/crawler/scripts/grubhub_menu.py \
+# 查询注册表（判断目标站点是否有现成脚本）
+conda run -n claw-crawler python3 skills/crawler/scripts/crawler.py match \
+  --url "https://www.grubhub.com/restaurant/tacos-chano-2251-south-monaco-street-parkway-denver/13030928"
+
+# Grubhub 专用爬虫（通过注册表执行）
+conda run -n claw-crawler python3 skills/crawler/scripts/crawler.py run grubhub_menu \
   --url "https://www.grubhub.com/restaurant/tacos-chano-2251-south-monaco-street-parkway-denver/13030928" \
   --output text
+
+# DoorDash 专用爬虫
+conda run -n claw-crawler python3 skills/crawler/scripts/doordash_menu.py \
+  --url "https://www.doordash.com/store/902649" --output text
 
 # SearXNG 搜索
 conda run -n claw-crawler uv run skills/searxng/scripts/searxng.py search "python web scraping"
@@ -230,8 +252,7 @@ chmod +x skills/searxng/scripts/run-searxng.sh
 conda deactivate
 conda env remove -n claw-crawler -y
 conda create -n claw-crawler python=3.11 -y
-pip install playwright beautifulsoup4 requests httpx rich
-conda run -n claw-crawler playwright install chromium
+pip install nodriver beautifulsoup4 requests websockets httpx rich pytest
 
 # 重启 SearXNG
 docker stop searxng && docker rm searxng
