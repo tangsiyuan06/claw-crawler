@@ -95,7 +95,7 @@ except (ModuleNotFoundError, ImportError):
 
 更新本地源码：
 ```bash
-cd /path/to/claw-crawler/nodriver-main
+cd $(git rev-parse --show-toplevel)/nodriver-main
 git pull
 ```
 
