@@ -1,0 +1,68 @@
+{
+  "host": "127.0.0.1",
+  "port": 62423,
+  "url": "https://www.chinastarpa88.com/",
+  "pid": 76817,
+  "captured": [
+    {
+      "url": "https://www.chinastarpa88.com/api/cart/ji5od7sj/getshoppingcart",
+      "size": 37,
+      "preview": "{\"message\": \"Shopping Cart is empty!\"}"
+    },
+    {
+      "url": "https://www.chinastarpa88.com/api/cart/ji5od7sj/createshoppingcart",
+      "size": 1224,
+      "preview": "{\"orderTypeId\": 1, \"subtotal\": 0, \"discountApplicableSubtotal\": 0, \"surchargeAmountUsed\": 0, \"creditCardProcessingFee\": 0, \"tipAmountUsed\": 0, \"tipPercentSelected\": -1, \"isTipTouched\": false, \"amountD"
+    },
+    {
+      "url": "https://www.chinastarpa88.com/api/payments/ji5od7sj/payment-types",
+      "size": 38,
+      "preview": "{\"paymentTypes\": [1], \"showPayPal\": true}"
+    },
+    {
+      "url": "https://www.chinastarpa88.com/api/patch-javelina/i/v0/e?ip=0&_=1775101487633&ver=1.359.0&compression=gzip-js",
+      "size": 15,
+      "preview": "{\"status\": \"Ok\"}"
+    },
+    {
+      "url": "https://www.chinastarpa88.com/api/patch-javelina/i/v0/e?ip=0&_=1775101493140&ver=1.359.0&compression=gzip-js",
+      "size": 15,
+      "preview": "{\"status\": \"Ok\"}"
+    },
+    {
+      "url": "https://www.chinastarpa88.com/api/patch-javelina/i/v0/e?ip=0&_=1775101503630&ver=1.359.0&compression=gzip-js",
+      "size": 15,
+      "preview": "{\"status\": \"Ok\"}"
+    },
+    {
+      "url": "https://www.chinastarpa88.com/api/patch-javelina/i/v0/e?ip=0&_=1775101507629&ver=1.359.0&compression=gzip-js",
+      "size": 15,
+      "preview": "{\"status\": \"Ok\"}"
+    },
+    {
+      "url": "https://www.chinastarpa88.com/api/patch-javelina/i/v0/e?ip=0&_=1775101567631&ver=1.359.0&compression=gzip-js",
+      "size": 15,
+      "preview": "{\"status\": \"Ok\"}"
+    },
+    {
+      "url": "https://www.chinastarpa88.com/api/patch-javelina/i/v0/e?ip=0&_=1775101571631&ver=1.359.0&compression=gzip-js",
+      "size": 15,
+      "preview": "{\"status\": \"Ok\"}"
+    },
+    {
+      "url": "https://www.chinastarpa88.com/api/patch-javelina/i/v0/e?ip=0&_=1775101608631&ver=1.359.0&compression=gzip-js",
+      "size": 15,
+      "preview": "{\"status\": \"Ok\"}"
+    },
+    {
+      "url": "https://www.chinastarpa88.com/api/patch-javelina/i/v0/e?ip=0&_=1775101617695&ver=1.359.0&compression=gzip-js",
+      "size": 15,
+      "preview": "{\"status\": \"Ok\"}"
+    },
+    {
+      "url": "https://www.chinastarpa88.com/api/patch-javelina/i/v0/e?ip=0&_=1775101621633&ver=1.359.0&compression=gzip-js",
+      "size": 15,
+      "preview": "{\"status\": \"Ok\"}"
+    }
+  ]
+}
